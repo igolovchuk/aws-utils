@@ -11,4 +11,5 @@ export type DynamoAthenaTransferConfig = {
     pathItems?: string[];
     excludedColums?: string[];
   };
+  debugMode?: boolean;
 };

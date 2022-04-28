@@ -104,7 +104,7 @@ export default function dynamoRepository<T>(tableName: string): Repository<T> {
 
       return true;
     } catch (error) {
-      console.error(`[updateRangeAsync]`, error);
+      console.error(`[aws utils] [updateRangeAsync]`, error);
 
       return false;
     }

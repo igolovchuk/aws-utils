@@ -12,7 +12,7 @@ export const createDynamoAthenaHistorySyncHandler =
     const res = await executeScan(config.dynamoConfig.tableName!);
     if (res.errors || !res.itemsCount) {
       console.error(
-        'Scan has errors or zero items. Stopping...',
+        '[aws utils] Scan has errors or zero items. Stopping...',
         JSON.stringify(res),
       );
       return;
@@ -26,18 +26,19 @@ export const createDynamoAthenaTableTriggerHandler =
     await syncTableRecords(event.Records, config, true);
 
 export const getAthenaResourceName = (resourceName: string): string =>
-  resourceName.replace(/-/g, '_');
+  resourceName.replace(/-/g, '_').toLowerCase();
 
 const syncTableRecords = async (
   records: DynamoDB.ItemList,
   config: DynamoAthenaTransferConfig,
   tableTrigger?: boolean,
 ): Promise<void> => {
-  const { dynamoConfig, athenaConfig } = config;
+  console.info('[aws utils] Records Received: ', records.length);
+  const { dynamoConfig, athenaConfig, debugMode } = config;
 
   if (!athenaConfig.bucket) {
     console.error(
-      'Reporting bucket wasn not configured, skipping put to Athena.',
+      '[aws utils] Reporting bucket wasn not configured, skipping put to Athena.',
     );
     return;
   }
@@ -48,28 +49,18 @@ const syncTableRecords = async (
   let syncedCount = 0;
   for (const record of records) {
     try {
-      let isDeleted = false;
-      const itemData: any = tableTrigger ? {} : record;
+      const isDeleted = record?.eventName === 'REMOVE';
+      const itemData: any = tableTrigger ? getTriggerRecord(record) : record;
+      if (debugMode) {
+        console.debug(`[aws utils] Dynamo record:`, JSON.stringify(record));
+      }
 
-      if (tableTrigger) {
-        const dynamoRecord = (record as Record<string, any>)?.dynamodb;
-        const data: Record<string, any> =
-          dynamoRecord?.NewImage || dynamoRecord?.OldImage || {};
-        isDeleted = record.eventName === 'REMOVE';
-
-        for (const [key, value] of Object.entries(data)) {
-          if (athenaConfig.excludedColums?.includes(key)) {
-            continue;
-          }
-
-          itemData[key] =
-            value['S'] ||
-            value['N'] ||
-            (value['L'] &&
-              value['L'].map((x: any) => x['S'] || x['N'] || x['BOOL'])) ||
-            (value['M'] && JSON.stringify(value['M'])) ||
-            (value['BOOL'] !== undefined && value['BOOL']);
+      for (const [key, value] of Object.entries(itemData)) {
+        if (athenaConfig.excludedColums?.includes(key)) {
+          continue;
         }
+
+        itemData[key] = value;
       }
 
       let path = athenaConfig.tableName;
@@ -86,6 +77,10 @@ const syncTableRecords = async (
 
       path += `/${itemData[athenaConfig.key]}.json`;
 
+      if (debugMode) {
+        console.debug(`[aws utils] Item data:`, JSON.stringify(itemData));
+      }
+
       await s3
         .putObject({
           Bucket: athenaConfig.bucket,
@@ -100,9 +95,17 @@ const syncTableRecords = async (
 
       syncedCount++;
     } catch (error) {
-      console.error('ERROR: could not put data to Athena', error);
+      console.error('[aws utils] Could not put data to Athena s3', error);
     }
   }
 
-  console.info(`(syncedCount/records): ${syncedCount}/${records.length}`);
+  console.info(`[aws utils] Sync result: ${syncedCount}/${records.length}`);
+};
+
+const getTriggerRecord = (
+  record: DynamoDB.AttributeMap,
+): Record<string, any> => {
+  const dynamoRecord = (record as Record<string, any>)?.dynamodb;
+  const item = dynamoRecord?.NewImage || dynamoRecord?.OldImage || {};
+  return DynamoDB.Converter.unmarshall(item);
 };

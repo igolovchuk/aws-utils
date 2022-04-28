@@ -126,7 +126,7 @@ export const buildQuery = ({
     ScanIndexForward: sortOrder == SortOrder.DESC ? false : true,
   };
 
-  //console.log('QUERY BUILT: ', query);
+  //console.log('[aws utils] QUERY BUILT: ', query);
 
   return query;
 };
@@ -146,7 +146,7 @@ export const executeQuery = async <T>(
     client = client || new DynamoDB.DocumentClient();
     const resultOutput = await client.query(inputQuery).promise();
 
-    //console.log('QUERY OUTPUT:', JSON.stringify(resultOutput));
+    //console.log('[aws utils] QUERY OUTPUT:', JSON.stringify(resultOutput));
 
     items = items.concat(resultOutput.Items || []);
     itemsCount += resultOutput.Count || 0;
@@ -157,7 +157,7 @@ export const executeQuery = async <T>(
       while (lastEvaluatedKey) {
         inputQuery.ExclusiveStartKey = lastEvaluatedKey;
         const intemediateResult = await client.query(inputQuery).promise();
-        //console.log('Intermediate Output received: ', intemediateResult);
+        //console.log('[aws utils] Intermediate Output received: ', intemediateResult);
         lastEvaluatedKey = intemediateResult.LastEvaluatedKey;
 
         if (intemediateResult.$response?.error) {
@@ -188,11 +188,14 @@ export const executeQuery = async <T>(
   }
 
   if (lastEvaluatedKey) {
-    console.info('[executeQuery] lastEvaluatedKey present: ', lastEvaluatedKey);
+    console.info(
+      '[aws utils] [executeQuery] lastEvaluatedKey: ',
+      lastEvaluatedKey,
+    );
   }
 
   if (errors.length) {
-    console.error('[executeQuery]', JSON.stringify(errors));
+    console.error('[aws utils] [executeQuery]', JSON.stringify(errors));
   }
 
   return {
@@ -239,7 +242,7 @@ export const executeScan = async (tableId: string): Promise<ScanOutput> => {
       errors.push(resultOutput.$response.error);
     }
   } catch (e) {
-    console.error('[executeScan]', e);
+    console.error('[aws utils] [executeScan]', e);
     errors.push(e as any);
   }
 

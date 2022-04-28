@@ -24,7 +24,7 @@ export const withHeaders =
   (handler: APICallback): APICallback =>
   async (...args) => {
     // const [event] = args;
-    // console.log('EVENT: ', event);
+    // console.log('[aws utils] EVENT: ', event);
 
     const resp = await handler(...args);
     if (resp) {
@@ -92,13 +92,13 @@ export const apiCallback =
       };
     } catch (e) {
       if (e instanceof ApiError) {
-        console.error('[apiCallback] API ERROR', e);
+        console.error('[aws utils] [apiCallback] API ERROR', e);
         return {
           statusCode: e.code || 500,
           body: JSON.stringify({ message: e.message }),
         };
       } else {
-        console.error('[apiCallback] UNEXPECTED ERROR', e);
+        console.error('[aws utils] [apiCallback] UNEXPECTED ERROR', e);
         return {
           statusCode: 500,
           body: JSON.stringify({ message: (e as any)?.message }),
@@ -239,7 +239,7 @@ const jsonParseExtended = (content: string) => {
       return v;
     });
   } catch (e) {
-    console.error('[jsonParseExtended]', e);
+    console.error('[aws utils] [jsonParseExtended]', e);
     return {};
   }
 };
@@ -252,7 +252,7 @@ const getJwtPayload = (token?: string) => {
 
     return jwtPayload;
   } catch (ex) {
-    console.error('[getJwtPayload]', ex);
+    console.error('[aws utils] [getJwtPayload]', ex);
     return undefined;
   }
 };

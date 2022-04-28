@@ -31,13 +31,13 @@ export default function publisherClient<T>(
     };
 
     if (logsEnabled) {
-      console.debug('[pubsub sdk] Publish request: ', request);
+      console.debug('[aws utils] Publish request: ', request);
     }
 
     const pub = await sns.publish(request).promise();
 
     if (logsEnabled) {
-      console.debug('[pubsub sdk] Publish result: ', pub);
+      console.debug('[aws utils] Publish result: ', pub);
     }
   };
 
