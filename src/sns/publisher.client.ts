@@ -10,7 +10,7 @@ export default function publisherClient<T>(
   topicName: string,
   awsAccountId: string,
   logsEnabled = false,
-  region = Region.Frankfurt,
+  region = Region.NVirginia,
 ): PublisherClient<T> {
   if (!topicName || !awsAccountId) {
     throw new Error('Invalid publisher params. Failed to init publisher.');

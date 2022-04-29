@@ -44,7 +44,7 @@ const syncTableRecords = async (
   }
 
   const s3 = new S3({
-    region: athenaConfig.region || Region.Frankfurt,
+    region: athenaConfig.region || Region.NVirginia,
   });
   let syncedCount = 0;
   for (const record of records) {
@@ -88,7 +88,7 @@ const syncTableRecords = async (
           Body: JSON.stringify({
             ...itemData,
             isDeleted,
-            region: dynamoConfig?.region || Region.Frankfurt,
+            region: dynamoConfig?.region || Region.NVirginia,
           }),
         })
         .promise();

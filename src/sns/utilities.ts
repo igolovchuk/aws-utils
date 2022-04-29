@@ -3,7 +3,7 @@ import { Region } from '../shared/models';
 export const getTopicArn = (
   name: string,
   awsAccountId: string,
-  region = Region.Frankfurt,
+  region = Region.NVirginia,
 ): string => `arn:aws:sns:${region}:${awsAccountId}:${name}`;
 
 export const getSubscriptionName = (
