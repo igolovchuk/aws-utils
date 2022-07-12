@@ -14,6 +14,8 @@ import {
   ScanOutput,
 } from './models';
 import { DynamoDB } from 'aws-sdk';
+import { chunkArray } from '../shared/utilities';
+import { DynamoDBStreamEvent } from 'aws-lambda';
 
 export const buildQuery = ({
   tableName,
@@ -252,6 +254,93 @@ export const executeScan = async (tableId: string): Promise<ScanOutput> => {
     errors: errors.length > 0 ? errors : undefined,
   };
 };
+
+export const updateAsync = async (
+  tableName: string,
+  item: any,
+  idAttributeName: string,
+  client?: DynamoDB.DocumentClient,
+) => {
+  if (!client) {
+    client = new DynamoDB.DocumentClient();
+  }
+
+  try {
+    const params: any = {
+      TableName: tableName,
+      Key: {},
+      ExpressionAttributeValues: {},
+      ExpressionAttributeNames: {},
+      UpdateExpression: '',
+      ReturnValues: 'UPDATED_NEW',
+    };
+
+    params['Key'][idAttributeName] = item[idAttributeName];
+
+    let prefix = 'set ';
+    const attributes = Object.keys(item);
+    for (let i = 0; i < attributes.length; i++) {
+      const attribute = attributes[i];
+      if (attribute != idAttributeName) {
+        params['UpdateExpression'] +=
+          prefix + '#' + attribute + ' = :' + attribute;
+        params['ExpressionAttributeValues'][':' + attribute] = item[attribute];
+        params['ExpressionAttributeNames']['#' + attribute] = attribute;
+        prefix = ', ';
+      }
+    }
+
+    const resultOutput = await client.update(params).promise();
+
+    return resultOutput;
+  } catch (error) {
+    console.error(`[updateAsync]`, error);
+
+    return null;
+  }
+};
+
+// NOTE: item should contain all fields, if not the will be emptied as it is Put request
+export const updateRangeAsync = async (
+  tableName: string,
+  items: Array<any>,
+  client?: DynamoDB.DocumentClient,
+) => {
+  if (!client) {
+    client = new DynamoDB.DocumentClient();
+  }
+
+  try {
+    const maxAllowedItemCountInBatch = 25; // AWS Restriction
+    const chunks = chunkArray(
+      items.map((x) => <unknown>{ PutRequest: { Item: x } }),
+      maxAllowedItemCountInBatch,
+    );
+
+    const result = [];
+    for (const chunk of chunks) {
+      const resultOutput = await client
+        .batchWrite({
+          RequestItems: {
+            [tableName]: chunk as DynamoDB.WriteRequest[],
+          },
+        })
+        .promise();
+      result.push(resultOutput);
+    }
+
+    return result;
+  } catch (error) {
+    console.error(`[updateRangeAsync]`, error);
+
+    return null;
+  }
+};
+
+export const getTableName = (event: DynamoDBStreamEvent): string | undefined =>
+  new RegExp(/(?<=table\/).*?(?=\/stream)/gm).exec(
+    event.Records?.[0].eventSourceARN || '',
+  )?.[0];
 
 const buildIncludeFilter = (
   includeFilter: IncludeFilter,

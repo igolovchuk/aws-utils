@@ -1,14 +1,18 @@
 import { DynamoDB } from 'aws-sdk';
 import { buildQuery, executeQuery, executeScan } from './utilities';
-import { chunkArray } from '../shared/utilities';
 import { QueryOutput, RepoQueryFilter } from './models';
+import { updateRangeAsync, updateAsync } from './utilities';
 
 export interface Repository<T> {
   getItem: (key: string, value: string) => Promise<T>;
   putItem: (item: T) => Promise<void>;
   getAllItems: () => Promise<T[]>;
   getItemsBy: (filter: RepoQueryFilter) => Promise<QueryOutput<T>>;
-  updateRangeAsync: (items: Array<T>) => Promise<boolean>;
+  update: (
+    keyName: string,
+    updateKeys: Record<string, any>,
+  ) => Promise<boolean>;
+  updateRange: (items: Array<T>) => Promise<boolean>;
   removeItem: (key: string, value: string) => Promise<void>;
 }
 
@@ -79,35 +83,20 @@ export default function dynamoRepository<T>(tableName: string): Repository<T> {
     return items;
   };
 
+  const update = async (
+    keyName: string,
+    updateKeys: Record<string, any>,
+  ): Promise<boolean> => {
+    const client = new DynamoDB.DocumentClient();
+    const result = await updateAsync(tableName, updateKeys, keyName, client);
+    return result !== null && !result.$response.error;
+  };
+
   // NOTE: item should contain all fields, if not the will be emptied as it is Put request
-  const updateRangeAsync = async (items: Array<T>): Promise<boolean> => {
-    try {
-      const client = new DynamoDB.DocumentClient();
-
-      const maxAllowedItemCountInBatch = 25; // AWS Restriction
-      const chunks = chunkArray(
-        items.map((x) => <unknown>{ PutRequest: { Item: x } }),
-        maxAllowedItemCountInBatch,
-      );
-
-      const result = [];
-      for (const chunk of chunks) {
-        const resultOutput = await client
-          .batchWrite({
-            RequestItems: {
-              [tableName]: chunk as DynamoDB.WriteRequest[],
-            },
-          })
-          .promise();
-        result.push(resultOutput);
-      }
-
-      return true;
-    } catch (error) {
-      console.error(`[aws utils] [updateRangeAsync]`, error);
-
-      return false;
-    }
+  const updateRange = async (items: Array<T>): Promise<boolean> => {
+    const client = new DynamoDB.DocumentClient();
+    const result = await updateRangeAsync(tableName, items, client);
+    return result !== null && !result.some((r) => r.$response.error);
   };
 
   return {
@@ -115,7 +104,8 @@ export default function dynamoRepository<T>(tableName: string): Repository<T> {
     putItem,
     getItemsBy,
     getAllItems,
-    updateRangeAsync,
+    update,
+    updateRange,
     removeItem,
   };
 }
