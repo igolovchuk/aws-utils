@@ -1,12 +1,9 @@
 {
     "name": "@golovchuk/aws-utils",
-    "version": "1.0.3",
-    "main": "build/index",
+    "version": "1.0.8",
+    "main": "index",
     "license": "MIT",
-    "files": [
-        "build"
-    ],
-    "types": "build/index.d.ts",
+    "types": "index.d.ts",
     "author": {
         "name": "Igor Golovchuk",
         "email": "igor@golovchuk.group",
@@ -31,8 +28,8 @@
         "aws-sdk": "^2.1119.0"
     },
     "scripts": {
-        "build": "tsc -p . --skiplibcheck",
-        "deploy": "yarn build && yarn publish",
+        "build": "tsc -p . --skiplibcheck && cp -rf ./package.json lib",
+        "deploy": "yarn build && cd lib && yarn publish && cd -",
         "lint": "eslint . --ext .ts,.tsx"
     },
     "publishConfig": {
