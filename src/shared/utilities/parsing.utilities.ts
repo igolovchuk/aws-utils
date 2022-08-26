@@ -13,3 +13,6 @@ export const toPascalCase = (value: string): string =>
     /(\w)(\w*)/g,
     (g0, g1, g2) => g1.toUpperCase() + g2.toLowerCase(),
   );
+
+export const toQueryString = (data: Record<string, any>): string =>
+  data ? new URLSearchParams(data).toString() : '';
