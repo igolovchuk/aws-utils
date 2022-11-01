@@ -1,7 +1,7 @@
 import { DynamoDB } from 'aws-sdk';
 import { buildQuery, executeQuery, executeScan } from './utilities';
 import { QueryOutput, RepoQueryFilter } from './models';
-import { updateRangeAsync, updateAsync } from './utilities';
+import { batchPutAsync, updateAsync } from './utilities';
 
 export interface Repository<T> {
   getItem: (key: string, value: string) => Promise<T>;
@@ -12,7 +12,7 @@ export interface Repository<T> {
     keyName: string,
     updateKeys: Record<string, any>,
   ) => Promise<boolean>;
-  updateRange: (items: Array<T>) => Promise<boolean>;
+  batchPut: (items: Array<T>) => Promise<boolean>;
   removeItem: (key: string, value: string) => Promise<void>;
 }
 
@@ -93,9 +93,9 @@ export default function dynamoRepository<T>(tableName: string): Repository<T> {
   };
 
   // NOTE: item should contain all fields, if not the will be emptied as it is Put request
-  const updateRange = async (items: Array<T>): Promise<boolean> => {
+  const batchPut = async (items: Array<T>): Promise<boolean> => {
     const client = new DynamoDB.DocumentClient();
-    const result = await updateRangeAsync(tableName, items, client);
+    const result = await batchPutAsync(tableName, items, client);
     return result !== null && !result.some((r) => r.$response.error);
   };
 
@@ -105,7 +105,7 @@ export default function dynamoRepository<T>(tableName: string): Repository<T> {
     getItemsBy,
     getAllItems,
     update,
-    updateRange,
+    batchPut,
     removeItem,
   };
 }

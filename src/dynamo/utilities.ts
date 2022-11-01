@@ -301,7 +301,7 @@ export const updateAsync = async (
 };
 
 // NOTE: item should contain all fields, if not the will be emptied as it is Put request
-export const updateRangeAsync = async (
+export const batchPutAsync = async (
   tableName: string,
   items: Array<any>,
   client?: DynamoDB.DocumentClient,
@@ -331,7 +331,7 @@ export const updateRangeAsync = async (
 
     return result;
   } catch (error) {
-    console.error(`[updateRangeAsync]`, error);
+    console.error(`[batchPutAsync]`, error);
 
     return null;
   }
