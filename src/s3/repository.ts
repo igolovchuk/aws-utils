@@ -2,7 +2,7 @@ import { S3 } from 'aws-sdk';
 import { FileDocument } from './models';
 import { Buffer } from 'buffer';
 
-const urlTTL = 120; // 2 mins
+const urlTTL = 3600; // 60 mins
 
 export interface BucketRepository {
   getItem: (key: string) => Promise<FileDocument>;
