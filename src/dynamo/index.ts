@@ -1,5 +1,5 @@
 import dynamoRepository from './repository';
 
 export * from './models';
-export { getTableName } from './utilities';
+export { getTableName, toItem } from './utilities';
 export { dynamoRepository };

@@ -14,3 +14,9 @@ export enum ExpressionOperationType {
   BETWEEN = 'BETWEEN',
   EQUAL_TO = 'EQUAL_TO',
 }
+
+export enum DynamoItemType {
+  ANY = 'ANY',
+  NEW = 'NEW',
+  OLD = 'OLD',
+}

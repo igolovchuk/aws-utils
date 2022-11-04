@@ -1,4 +1,5 @@
 import {
+  DynamoItemType,
   ExpressionOperationType,
   QuerySelectType,
   SortOrder,
@@ -15,7 +16,7 @@ import {
 } from './models';
 import { DynamoDB } from 'aws-sdk';
 import { chunkArray } from '../shared/utilities';
-import { DynamoDBStreamEvent } from 'aws-lambda';
+import { DynamoDBRecord, DynamoDBStreamEvent } from 'aws-lambda';
 
 export const buildQuery = ({
   tableName,
@@ -484,4 +485,26 @@ const buildExpressionFilter = (
   }
 
   return expression;
+};
+
+export const toItem = <T>(
+  record: DynamoDBRecord,
+  type: DynamoItemType = DynamoItemType.ANY,
+): T => {
+  const dynamoRecord = record.dynamodb;
+  let item;
+
+  switch (type) {
+    case DynamoItemType.ANY:
+      item = dynamoRecord?.NewImage || dynamoRecord?.OldImage;
+      break;
+    case DynamoItemType.NEW:
+      item = dynamoRecord?.NewImage;
+      break;
+    case DynamoItemType.OLD:
+      item = dynamoRecord?.OldImage;
+      break;
+  }
+
+  return (item && DynamoDB.Converter.unmarshall(item)) as T;
 };
