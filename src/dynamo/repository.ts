@@ -94,6 +94,8 @@ export default function dynamoRepository<T>(tableName: string): Repository<T> {
 
   // NOTE: item should contain all fields, if not the will be emptied as it is Put request
   const batchPut = async (items: Array<T>): Promise<boolean> => {
+    if (!items?.length) return true;
+
     const client = new DynamoDB.DocumentClient();
     const result = await batchPutAsync(tableName, items, client);
     return result !== null && !result.some((r) => r.$response.error);
