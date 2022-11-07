@@ -210,6 +210,21 @@ export const getRawBody = (event: APIGatewayProxyEvent): Buffer => {
     : Buffer.from(event.body || '');
 };
 
+export const getJwtPayload = (
+  token?: string,
+): Record<string, any> | undefined => {
+  try {
+    const jwtPayload =
+      token &&
+      JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+
+    return jwtPayload;
+  } catch (ex) {
+    console.error('[aws utils] [getJwtPayload]', ex);
+    return undefined;
+  }
+};
+
 const decodeUrlEncodedBody = <T>(bodyContent: string): T => {
   const result: any = {};
 
@@ -241,19 +256,6 @@ const jsonParseExtended = (content: string) => {
   } catch (e) {
     console.error('[aws utils] [jsonParseExtended]', e);
     return {};
-  }
-};
-
-const getJwtPayload = (token?: string) => {
-  try {
-    const jwtPayload =
-      token &&
-      JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-
-    return jwtPayload;
-  } catch (ex) {
-    console.error('[aws utils] [getJwtPayload]', ex);
-    return undefined;
   }
 };
 
