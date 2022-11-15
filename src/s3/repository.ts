@@ -7,8 +7,8 @@ const urlTTL = 3600; // 60 mins
 export interface BucketRepository {
   getItem: (key: string) => Promise<FileDocument>;
   getObjectsInFolder: (path: string) => Promise<string[]>;
-  getSignedDownloadUrl: (path: string) => string;
-  getSignedUploadUrl: (path: string) => string;
+  getSignedDownloadUrl: (path: string, urlTtl?: number) => string;
+  getSignedUploadUrl: (path: string, urlTtl?: number) => string;
   removeObject: (path: string) => Promise<void>;
   removeObjects: (folderPath: string) => Promise<void>;
   putItem: (item: FileDocument) => Promise<void>;
