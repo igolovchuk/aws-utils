@@ -1,6 +1,6 @@
 {
     "name": "@golovchuk/aws-utils",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "main": "index",
     "license": "MIT",
     "types": "index.d.ts",
