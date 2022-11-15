@@ -1,6 +1,6 @@
 import { DynamoDB } from 'aws-sdk';
 import { buildQuery, executeQuery, executeScan } from './utilities';
-import { QueryOutput, RepoQueryFilter } from './models';
+import { DynamoKey, QueryOutput, RepoQueryFilter } from './models';
 import { batchPutAsync, updateAsync } from './utilities';
 
 export interface Repository<T> {
@@ -8,10 +8,7 @@ export interface Repository<T> {
   putItem: (item: T) => Promise<void>;
   getAllItems: () => Promise<T[]>;
   getItemsBy: (filter: RepoQueryFilter) => Promise<QueryOutput<T>>;
-  update: (
-    keyName: string,
-    updateKeys: Record<string, any>,
-  ) => Promise<boolean>;
+  update: (key: DynamoKey, updateKeys: Record<string, any>) => Promise<boolean>;
   batchPut: (items: Array<T>) => Promise<boolean>;
   removeItem: (key: string, value: string) => Promise<void>;
 }
@@ -84,11 +81,11 @@ export default function dynamoRepository<T>(tableName: string): Repository<T> {
   };
 
   const update = async (
-    keyName: string,
+    key: DynamoKey,
     updateKeys: Record<string, any>,
   ): Promise<boolean> => {
     const client = new DynamoDB.DocumentClient();
-    const result = await updateAsync(tableName, updateKeys, keyName, client);
+    const result = await updateAsync(tableName, updateKeys, key, client);
     return result !== null && !result.$response.error;
   };
 

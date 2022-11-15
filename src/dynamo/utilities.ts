@@ -7,6 +7,7 @@ import {
 import {
   ContainsAnyFilter,
   ContainsFilter,
+  DynamoKey,
   EqualFilter,
   ExpressionOperation,
   IncludeFilter,
@@ -259,7 +260,7 @@ export const executeScan = async (tableId: string): Promise<ScanOutput> => {
 export const updateAsync = async (
   tableName: string,
   item: any,
-  idAttributeName: string,
+  key: DynamoKey,
   client?: DynamoDB.DocumentClient,
 ) => {
   if (!client) {
@@ -269,20 +270,24 @@ export const updateAsync = async (
   try {
     const params: any = {
       TableName: tableName,
-      Key: {},
+      Key: {
+        [key.hashKeyName]: item[key.hashKeyName],
+      },
       ExpressionAttributeValues: {},
       ExpressionAttributeNames: {},
       UpdateExpression: '',
       ReturnValues: 'UPDATED_NEW',
     };
 
-    params['Key'][idAttributeName] = item[idAttributeName];
+    if (key.rangeKeyName) {
+      params['Key'][key.rangeKeyName] = item[key.rangeKeyName];
+    }
 
     let prefix = 'set ';
     const attributes = Object.keys(item);
     for (let i = 0; i < attributes.length; i++) {
       const attribute = attributes[i];
-      if (attribute != idAttributeName) {
+      if (attribute !== key.hashKeyName && attribute !== key.rangeKeyName) {
         params['UpdateExpression'] +=
           prefix + '#' + attribute + ' = :' + attribute;
         params['ExpressionAttributeValues'][':' + attribute] = item[attribute];
