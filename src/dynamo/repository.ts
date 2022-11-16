@@ -2,6 +2,7 @@ import { DynamoDB } from 'aws-sdk';
 import { buildQuery, executeQuery, executeScan } from './utilities';
 import { DynamoKey, QueryOutput, RepoQueryFilter } from './models';
 import { batchPutAsync, updateAsync } from './utilities';
+import { ILogger } from '../shared/models';
 
 export interface Repository<T> {
   getItem: (key: string, value: string) => Promise<T>;
@@ -13,7 +14,10 @@ export interface Repository<T> {
   removeItem: (key: string, value: string) => Promise<void>;
 }
 
-export default function dynamoRepository<T>(tableName: string): Repository<T> {
+export default function dynamoRepository<T>(
+  tableName: string,
+  logger?: ILogger,
+): Repository<T> {
   const getItem = async (key: string, value: string): Promise<T> => {
     if (!key || !value) {
       throw new Error('Invalid key data');
@@ -70,10 +74,13 @@ export default function dynamoRepository<T>(tableName: string): Repository<T> {
   const getItemsBy = async (
     filter: RepoQueryFilter,
   ): Promise<QueryOutput<T>> => {
-    const query = buildQuery({
-      ...filter,
-      tableName: tableName,
-    });
+    const query = buildQuery(
+      {
+        ...filter,
+        tableName: tableName,
+      },
+      logger,
+    );
 
     const items = await executeQuery<T>(query);
 
@@ -85,7 +92,14 @@ export default function dynamoRepository<T>(tableName: string): Repository<T> {
     updateKeys: Record<string, any>,
   ): Promise<boolean> => {
     const client = new DynamoDB.DocumentClient();
-    const result = await updateAsync(tableName, updateKeys, key, client);
+    const result = await updateAsync(
+      tableName,
+      updateKeys,
+      key,
+      client,
+      logger,
+    );
+
     return result !== null && !result.$response.error;
   };
 

@@ -18,19 +18,23 @@ import {
 import { DynamoDB } from 'aws-sdk';
 import { chunkArray } from '../shared/utilities';
 import { DynamoDBRecord, DynamoDBStreamEvent } from 'aws-lambda';
+import { ILogger } from '../shared/models';
 
-export const buildQuery = ({
-  tableName,
-  keyFilter,
-  indexFilter,
-  includeFilter,
-  containsFilter,
-  containsAnyFilter,
-  equalFilter,
-  querySelectType,
-  limit,
-  startKey,
-}: QueryIndexFilter): DynamoDB.DocumentClient.QueryInput => {
+export const buildQuery = (
+  {
+    tableName,
+    keyFilter,
+    indexFilter,
+    includeFilter,
+    containsFilter,
+    containsAnyFilter,
+    equalFilter,
+    querySelectType,
+    limit,
+    startKey,
+  }: QueryIndexFilter,
+  logger?: ILogger,
+): DynamoDB.DocumentClient.QueryInput => {
   if (!keyFilter && !indexFilter) {
     throw new Error('Key filter nor index filter was provided.');
   }
@@ -130,7 +134,7 @@ export const buildQuery = ({
     ScanIndexForward: sortOrder == SortOrder.DESC ? false : true,
   };
 
-  //console.log('[aws utils] QUERY BUILT: ', query);
+  logger?.debug(`[aws utils]-[buildQuery]`, query);
 
   return query;
 };
@@ -262,6 +266,7 @@ export const updateAsync = async (
   item: any,
   key: DynamoKey,
   client?: DynamoDB.DocumentClient,
+  logger?: ILogger,
 ) => {
   if (!client) {
     client = new DynamoDB.DocumentClient();
@@ -296,11 +301,12 @@ export const updateAsync = async (
       }
     }
 
+    logger?.debug(`[aws-utils]-[updateAsync]`, params);
     const resultOutput = await client.update(params).promise();
 
     return resultOutput;
   } catch (error) {
-    console.error(`[updateAsync]`, error);
+    console.error(`[aws-utils]-[updateAsync]`, error);
 
     return null;
   }
@@ -347,6 +353,28 @@ export const getTableName = (event: DynamoDBStreamEvent): string | undefined =>
   new RegExp(/(?<=table\/).*?(?=\/stream)/gm).exec(
     event.Records?.[0].eventSourceARN || '',
   )?.[0];
+
+export const toItem = <T>(
+  record: DynamoDBRecord,
+  type: DynamoItemType = DynamoItemType.ANY,
+): T => {
+  const dynamoRecord = record.dynamodb;
+  let item;
+
+  switch (type) {
+    case DynamoItemType.ANY:
+      item = dynamoRecord?.NewImage || dynamoRecord?.OldImage;
+      break;
+    case DynamoItemType.NEW:
+      item = dynamoRecord?.NewImage;
+      break;
+    case DynamoItemType.OLD:
+      item = dynamoRecord?.OldImage;
+      break;
+  }
+
+  return (item && DynamoDB.Converter.unmarshall(item)) as T;
+};
 
 const buildIncludeFilter = (
   includeFilter: IncludeFilter,
@@ -490,26 +518,4 @@ const buildExpressionFilter = (
   }
 
   return expression;
-};
-
-export const toItem = <T>(
-  record: DynamoDBRecord,
-  type: DynamoItemType = DynamoItemType.ANY,
-): T => {
-  const dynamoRecord = record.dynamodb;
-  let item;
-
-  switch (type) {
-    case DynamoItemType.ANY:
-      item = dynamoRecord?.NewImage || dynamoRecord?.OldImage;
-      break;
-    case DynamoItemType.NEW:
-      item = dynamoRecord?.NewImage;
-      break;
-    case DynamoItemType.OLD:
-      item = dynamoRecord?.OldImage;
-      break;
-  }
-
-  return (item && DynamoDB.Converter.unmarshall(item)) as T;
 };
