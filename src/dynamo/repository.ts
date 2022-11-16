@@ -5,12 +5,48 @@ import { batchPutAsync, updateAsync } from './utilities';
 import { ILogger } from '../shared/models';
 
 export interface Repository<T> {
+  /**
+   * @param {string} key - Key property name
+   * @param {string} value - Key property value
+   * @returns {T} Item object.
+   */
   getItem: (key: string, value: string) => Promise<T>;
+
+  /**
+   * @param {T} item - Key property name
+   */
   putItem: (item: T) => Promise<void>;
+
+  /**
+   * Scans the table and reads everything until the end.
+   * @returns {T[]} Items array
+   */
   getAllItems: () => Promise<T[]>;
+
+  /**
+   * @param  {RepoQueryFilter} filter
+   * @returns {boolean} Query output result.
+   */
   getItemsBy: (filter: RepoQueryFilter) => Promise<QueryOutput<T>>;
-  update: (key: DynamoKey, updateKeys: Record<string, any>) => Promise<boolean>;
+
+  /**
+   * Partial update of object properties.
+   * @param  {DynamoKey} key
+   * @param  {T} updateProps
+   * @returns {boolean} True if success, otherwise - False.
+   */
+  update: (key: DynamoKey, updateProps: T) => Promise<boolean>;
+
+  /**
+   * @param {Array<T>} items - Each Item should contain all fields, if not the will be emptied as it is Put request
+   * @returns {boolean} True if success, otherwise - False.
+   */
   batchPut: (items: Array<T>) => Promise<boolean>;
+
+  /**
+   * @param {string} key - Key property name
+   * @param {string} value - Key property value
+   */
   removeItem: (key: string, value: string) => Promise<void>;
 }
 
@@ -87,14 +123,11 @@ export default function dynamoRepository<T>(
     return items;
   };
 
-  const update = async (
-    key: DynamoKey,
-    updateKeys: Record<string, any>,
-  ): Promise<boolean> => {
+  const update = async (key: DynamoKey, updateProps: T): Promise<boolean> => {
     const client = new DynamoDB.DocumentClient();
     const result = await updateAsync(
       tableName,
-      updateKeys,
+      updateProps,
       key,
       client,
       logger,
