@@ -35,7 +35,7 @@ export interface Repository<T> {
    * @param  {T} updateProps
    * @returns {boolean} True if success, otherwise - False.
    */
-  update: (key: DynamoKey, updateProps: T) => Promise<boolean>;
+  update: (key: DynamoKey, updateProps: Partial<T>) => Promise<boolean>;
 
   /**
    * @param {Array<T>} items - Each Item should contain all fields, if not the will be emptied as it is Put request
@@ -123,7 +123,10 @@ export default function dynamoRepository<T>(
     return items;
   };
 
-  const update = async (key: DynamoKey, updateProps: T): Promise<boolean> => {
+  const update = async (
+    key: DynamoKey,
+    updateProps: Partial<T>,
+  ): Promise<boolean> => {
     const client = new DynamoDB.DocumentClient();
     const result = await updateAsync(
       tableName,
