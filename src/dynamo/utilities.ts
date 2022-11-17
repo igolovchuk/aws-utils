@@ -53,8 +53,8 @@ export const buildQuery = (
     ':keyValue': keyFilter?.hashKeyValue || indexFilter?.indexValue,
   };
 
-  if (keyFilter?.sortKeyFilter) {
-    const { key, operation } = keyFilter.sortKeyFilter;
+  if (keyFilter?.rangeKeyFilter) {
+    const { key, operation } = keyFilter.rangeKeyFilter;
 
     expression += buildExpressionFilter(
       key,
@@ -65,8 +65,8 @@ export const buildQuery = (
   } else if (indexFilter) {
     indexMainPart = indexFilter.indexKey;
 
-    if (indexFilter.sortKeyFilter) {
-      const { key, operation } = indexFilter.sortKeyFilter;
+    if (indexFilter.rangeKeyFilter) {
+      const { key, operation } = indexFilter.rangeKeyFilter;
       indexMainPart += `-${key}`;
 
       expression += buildExpressionFilter(
@@ -117,8 +117,8 @@ export const buildQuery = (
   }
 
   const sortOrder =
-    keyFilter?.sortKeyFilter?.sortOrder ||
-    indexFilter?.sortKeyFilter?.sortOrder ||
+    keyFilter?.rangeKeyFilter?.sortOrder ||
+    indexFilter?.rangeKeyFilter?.sortOrder ||
     SortOrder.ASC;
 
   const query: DynamoDB.DocumentClient.QueryInput = {
@@ -276,7 +276,7 @@ export const updateAsync = async (
     const params: any = {
       TableName: tableName,
       Key: {
-        [key.hashKeyName]: item[key.hashKeyName],
+        [key.hashKey.name]: key.hashKey.value || item[key.hashKey.name],
       },
       ExpressionAttributeValues: {},
       ExpressionAttributeNames: {},
@@ -284,15 +284,16 @@ export const updateAsync = async (
       ReturnValues: 'UPDATED_NEW',
     };
 
-    if (key.rangeKeyName) {
-      params['Key'][key.rangeKeyName] = item[key.rangeKeyName];
+    if (key.rangeKey) {
+      params['Key'][key.rangeKey.name] =
+        key.rangeKey.value || item[key.rangeKey.name];
     }
 
     let prefix = 'set ';
     const attributes = Object.keys(item);
     for (let i = 0; i < attributes.length; i++) {
       const attribute = attributes[i];
-      if (attribute !== key.hashKeyName && attribute !== key.rangeKeyName) {
+      if (attribute !== key.hashKey.name && attribute !== key.rangeKey?.name) {
         params['UpdateExpression'] +=
           prefix + '#' + attribute + ' = :' + attribute;
         params['ExpressionAttributeValues'][':' + attribute] = item[attribute];

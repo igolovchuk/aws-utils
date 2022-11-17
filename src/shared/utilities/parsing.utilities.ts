@@ -16,3 +16,6 @@ export const toPascalCase = (value: string): string =>
 
 export const toQueryString = (data: Record<string, any>): string =>
   data ? new URLSearchParams(data).toString() : '';
+
+export const isString = (value: any): boolean =>
+  typeof value === 'string' || value instanceof String;

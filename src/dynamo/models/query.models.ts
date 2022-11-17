@@ -5,7 +5,7 @@ import {
 } from './enum.models';
 import { DynamoDB } from 'aws-sdk';
 
-export interface SortKeyFilter {
+export interface RangeKeyFilter {
   key: string;
   sortOrder?: SortOrder;
   operation?: ExpressionOperation;
@@ -38,13 +38,13 @@ export interface ContainsAnyFilter {
 export interface IndexFilter {
   indexKey: string;
   indexValue: string;
-  sortKeyFilter?: SortKeyFilter;
+  rangeKeyFilter?: RangeKeyFilter;
 }
 
 export interface KeyFilter {
   hashKey: string;
   hashKeyValue: string;
-  sortKeyFilter?: SortKeyFilter;
+  rangeKeyFilter?: RangeKeyFilter;
 }
 
 export type RepoQueryFilter = Omit<QueryIndexFilter, 'tableName'>;

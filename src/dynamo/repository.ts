@@ -2,15 +2,17 @@ import { DynamoDB } from 'aws-sdk';
 import { buildQuery, executeQuery, executeScan } from './utilities';
 import { DynamoKey, QueryOutput, RepoQueryFilter } from './models';
 import { batchPutAsync, updateAsync } from './utilities';
-import { ILogger } from '../shared/models';
+import type { ILogger } from '../shared/models';
+import { Guard, isString } from '../shared/utilities';
+import type { Key } from 'aws-sdk/clients/dynamodb';
 
 export interface Repository<T> {
   /**
-   * @param {string} key - Key property name
+   * @param {DynamoKey | string} key - Key property name
    * @param {string} value - Key property value
    * @returns {T} Item object.
    */
-  getItem: (key: string, value: string) => Promise<T>;
+  getItem: (key: DynamoKey | string, value?: string) => Promise<T>;
 
   /**
    * @param {T} item - Key property name
@@ -31,11 +33,14 @@ export interface Repository<T> {
 
   /**
    * Partial update of object properties.
-   * @param  {DynamoKey} key
-   * @param  {T} updateProps
+   * @param  {DynamoKey | string} key Key property name
+   * @param  {Partial<T>} updateProps Item properties to update
    * @returns {boolean} True if success, otherwise - False.
    */
-  update: (key: DynamoKey, updateProps: Partial<T>) => Promise<boolean>;
+  update: (
+    key: DynamoKey | string,
+    updateProps: Partial<T>,
+  ) => Promise<boolean>;
 
   /**
    * @param {Array<T>} items - Each Item should contain all fields, if not the will be emptied as it is Put request
@@ -44,26 +49,26 @@ export interface Repository<T> {
   batchPut: (items: Array<T>) => Promise<boolean>;
 
   /**
-   * @param {string} key - Key property name
+   * @param {DynamoKey | string} key - Key property name
    * @param {string} value - Key property value
    */
-  removeItem: (key: string, value: string) => Promise<void>;
+  removeItem: (key: DynamoKey | string, value?: string) => Promise<void>;
 }
 
 export default function dynamoRepository<T>(
   tableName: string,
   logger?: ILogger,
 ): Repository<T> {
-  const getItem = async (key: string, value: string): Promise<T> => {
-    if (!key || !value) {
-      throw new Error('Invalid key data');
-    }
-
+  const getItem = async (
+    key: DynamoKey | string,
+    value?: string,
+  ): Promise<T> => {
+    const dbKey = getDbKey(key, value);
     const client = new DynamoDB.DocumentClient();
     const dbData = await client
       .get({
         TableName: tableName,
-        Key: { [key]: value },
+        Key: dbKey,
         ConsistentRead: true,
       })
       .promise();
@@ -87,16 +92,16 @@ export default function dynamoRepository<T>(
       .promise();
   };
 
-  const removeItem = async (key: string, value: string): Promise<void> => {
-    if (!key || !value) {
-      throw new Error('Invalid key data');
-    }
-
+  const removeItem = async (
+    key: DynamoKey | string,
+    value?: string,
+  ): Promise<void> => {
+    const dbKey = getDbKey(key, value);
     const client = new DynamoDB.DocumentClient();
     await client
       .delete({
         TableName: tableName,
-        Key: { [key]: value },
+        Key: dbKey,
       })
       .promise();
   };
@@ -124,14 +129,15 @@ export default function dynamoRepository<T>(
   };
 
   const update = async (
-    key: DynamoKey,
+    key: DynamoKey | string,
     updateProps: Partial<T>,
   ): Promise<boolean> => {
     const client = new DynamoDB.DocumentClient();
+    const dbKey = isString(key) ? { hashKey: { name: key } } : key;
     const result = await updateAsync(
       tableName,
       updateProps,
-      key,
+      dbKey as DynamoKey,
       client,
       logger,
     );
@@ -146,6 +152,24 @@ export default function dynamoRepository<T>(
     const client = new DynamoDB.DocumentClient();
     const result = await batchPutAsync(tableName, items, client);
     return result !== null && !result.some((r) => r.$response.error);
+  };
+
+  const getDbKey = (key: DynamoKey | string, value?: string): Key => {
+    const isSimpleKey = isString(key);
+
+    Guard.throwIfUndefined(key, 'Key is required.');
+    Guard.throwIf(isSimpleKey && !value, 'Value is required.');
+
+    const keyData = key as any;
+    const dbKey = isSimpleKey
+      ? { [keyData]: value }
+      : { [keyData.hashKey.name]: keyData.hashKey.value };
+
+    if (keyData.rangeKey) {
+      dbKey[keyData.rangeKey.name] = keyData.rangeKey.value;
+    }
+
+    return dbKey;
   };
 
   return {
