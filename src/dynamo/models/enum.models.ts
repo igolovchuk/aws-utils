@@ -5,6 +5,12 @@ export enum QuerySelectType {
   count = 'COUNT',
 }
 
+export enum IndexProjectionType {
+  ALL = 'ALL',
+  KEYS_ONLY = 'KEYS_ONLY',
+  //INCLUDE = 'INCLUDE',
+}
+
 export enum SortOrder {
   ASC = 'Asc',
   DESC = 'Desc',

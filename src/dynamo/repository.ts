@@ -9,7 +9,7 @@ import type { Key } from 'aws-sdk/clients/dynamodb';
 export interface Repository<T> {
   /**
    * @param {DynamoKey | string} key - Key property name
-   * @param {string} value - Key property value
+   * @param {string} value - Key property value, required only if key is a string.
    * @returns {T} Item object.
    */
   getItem: (key: DynamoKey | string, value?: string) => Promise<T>;
@@ -34,7 +34,7 @@ export interface Repository<T> {
   /**
    * Partial update of object properties.
    * @param  {DynamoKey | string} key Key property name
-   * @param  {Partial<T>} updateProps Item properties to update
+   * @param  {Partial<T>} updateProps Item properties to update, if key is a string object should contain key field.
    * @returns {boolean} True if success, otherwise - False.
    */
   update: (
@@ -50,7 +50,7 @@ export interface Repository<T> {
 
   /**
    * @param {DynamoKey | string} key - Key property name
-   * @param {string} value - Key property value
+   * @param {string} value - Key property value, required only if key is a string.
    */
   removeItem: (key: DynamoKey | string, value?: string) => Promise<void>;
 }

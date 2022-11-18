@@ -1,5 +1,6 @@
 import {
   ExpressionOperationType,
+  IndexProjectionType,
   QuerySelectType,
   SortOrder,
 } from './enum.models';
@@ -36,8 +37,20 @@ export interface ContainsAnyFilter {
 }
 
 export interface IndexFilter {
+  /**
+   * Indexed property name, the index generation pattern should follow
+   * this rul <property>-<anotherProperty(optional)>-index.
+   */
   indexKey: string;
+  /**
+   * Indexed property value
+   */
   indexValue: string;
+  /**
+   * Default is ALL, if you set KEYS_ONLY it will add -keys suffix to index name,
+   * so please ensure you have index named <property>-keys-index.
+   */
+  projectionType?: IndexProjectionType;
   rangeKeyFilter?: RangeKeyFilter;
 }
 

@@ -1,6 +1,7 @@
 import {
   DynamoItemType,
   ExpressionOperationType,
+  IndexProjectionType,
   QuerySelectType,
   SortOrder,
 } from './models/enum.models';
@@ -75,6 +76,10 @@ export const buildQuery = (
         expAttrNames,
         expAttrValues,
       );
+    }
+
+    if (indexFilter.projectionType === IndexProjectionType.KEYS_ONLY) {
+      indexMainPart += '-keys';
     }
   }
 
