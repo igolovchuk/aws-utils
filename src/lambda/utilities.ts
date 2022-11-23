@@ -225,6 +225,21 @@ export const getJwtPayload = (
   }
 };
 
+export const getParam = (
+  name: string,
+  params: Record<string, string | undefined> | null,
+  required = true,
+): string => {
+  let value = params?.[name];
+  value = value === 'undefined' ? undefined : value;
+
+  if (!value && required) {
+    throw new ApiError(`${name} required.`, 400);
+  }
+
+  return value as string;
+};
+
 const decodeUrlEncodedBody = <T>(bodyContent: string): T => {
   const result: any = {};
 
@@ -257,19 +272,4 @@ const jsonParseExtended = (content: string) => {
     console.error('[aws utils] [jsonParseExtended]', e);
     return {};
   }
-};
-
-const getParam = (
-  name: string,
-  params: Record<string, string | undefined> | null,
-  required = true,
-): string => {
-  let value = params?.[name];
-  value = value === 'undefined' ? undefined : value;
-
-  if (!value && required) {
-    throw new ApiError(`${name} required.`, 400);
-  }
-
-  return value as string;
 };
