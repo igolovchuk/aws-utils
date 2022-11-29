@@ -10,10 +10,10 @@ export class Guard {
 
     switch (true) {
       case isString(value):
-        throwError = !value || value === '';
+        throwError = !value || (value as unknown) === '';
         break;
       case Array.isArray(value):
-        throwError = !value || (value as any[]).length === 0;
+        throwError = !value || (value as any).length === 0;
         break;
       case isNumber(value):
         throwError = !value;
