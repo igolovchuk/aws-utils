@@ -11,3 +11,18 @@ export const chunkArray = <T>(myArray: Array<T>, chunkSize: number): T[][] => {
 
   return tempArray;
 };
+
+export const chunkBuffer = (
+  buffer: Buffer,
+  chunkSizeInBytes: number,
+): Buffer[] => {
+  let index = 0;
+  const arrayLength = buffer.length;
+  const result = [];
+
+  while (index < arrayLength) {
+    result.push(buffer.slice(index, (index += chunkSizeInBytes)));
+  }
+
+  return result;
+};

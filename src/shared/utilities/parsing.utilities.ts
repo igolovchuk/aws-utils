@@ -19,3 +19,6 @@ export const toQueryString = (data: Record<string, any>): string =>
 
 export const isString = (value: any): boolean =>
   typeof value === 'string' || value instanceof String;
+
+export const isNumber = (value: any): boolean =>
+  typeof value === 'number' && !isNaN(value);
