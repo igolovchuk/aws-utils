@@ -18,22 +18,22 @@ export interface ExpressionOperation {
 }
 
 export interface EqualFilter {
-  [attributeName: string]: string;
+  [attributeName: string]: any;
 }
 
 export interface IncludeFilter {
   attributeName: string;
-  filterValues: string[];
+  filterValues: any[];
 }
 
 export interface ContainsFilter {
   attributeNames: string[];
-  filterValue: string;
+  filterValue: any;
 }
 
 export interface ContainsAnyFilter {
   attributeName: string;
-  filterValues: string[];
+  filterValues: any[];
 }
 
 export interface IndexFilter {

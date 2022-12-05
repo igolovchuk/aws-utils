@@ -98,7 +98,7 @@ export const apiCallback =
           body: JSON.stringify({ message: e.message }),
         };
       } else {
-        console.error('[aws utils] [apiCallback] UNEXPECTED ERROR', e);
+        console.error('[aws utils] [apiCallback] UNEXPECTED ERROR %j', e);
         return {
           statusCode: 500,
           body: JSON.stringify({ message: (e as any)?.message }),
