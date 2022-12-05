@@ -108,7 +108,7 @@ export default function dynamoRepository<T>(
   };
 
   const getAllItems = async (filter?: ScanFilter): Promise<T[]> => {
-    const res = await executeScan(tableName, filter);
+    const res = await executeScan(tableName, filter, logger);
 
     return (res.items || []) as unknown as T[];
   };
@@ -124,7 +124,7 @@ export default function dynamoRepository<T>(
       logger,
     );
 
-    const items = await executeQuery<T>(query);
+    const items = await executeQuery<T>(query, undefined, false, logger);
 
     return items;
   };

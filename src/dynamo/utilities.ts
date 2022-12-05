@@ -54,9 +54,9 @@ export const buildQuery = (
     '#key': keyFilter?.hashKey || indexFilter?.indexKey || '',
   };
   let expAttrValues: ExpressionAttributeValueMap = {
-    ':keyValue': {
-      S: keyFilter?.hashKeyValue || indexFilter?.indexValue || '',
-    },
+    ':keyValue': DynamoDB.Converter.input(
+      keyFilter?.hashKeyValue || indexFilter?.indexValue,
+    ),
   };
 
   if (keyFilter?.rangeKeyFilter) {
@@ -112,7 +112,7 @@ export const buildQuery = (
     ScanIndexForward: sortOrder == SortOrder.DESC ? false : true,
   };
 
-  logger?.debug(`[aws utils]-[buildQuery]`, query);
+  logger?.debug(`[aws utils] [buildQuery]`, query);
 
   return query;
 };
@@ -121,6 +121,7 @@ export const executeQuery = async <T>(
   inputQuery: DynamoDB.DocumentClient.QueryInput,
   client?: DynamoDB.DocumentClient,
   countTotal = false,
+  logger?: ILogger,
 ): Promise<QueryOutput<T>> => {
   let items: any[] = [];
   let itemsCount = 0;
@@ -174,14 +175,14 @@ export const executeQuery = async <T>(
   }
 
   if (lastEvaluatedKey) {
-    console.info(
+    logger?.info(
       '[aws utils] [executeQuery] lastEvaluatedKey: ',
       lastEvaluatedKey,
     );
   }
 
   if (errors.length) {
-    console.error('[aws utils] [executeQuery]', JSON.stringify(errors));
+    logger?.error('[aws utils] [executeQuery]', JSON.stringify(errors));
   }
 
   return {
@@ -196,6 +197,7 @@ export const executeQuery = async <T>(
 export const executeScan = async (
   tableId: string,
   filter?: ScanFilter,
+  logger?: ILogger,
 ): Promise<ScanOutput> => {
   let items: DynamoDB.ItemList = [];
   let itemsCount = 0;
@@ -215,6 +217,9 @@ export const executeScan = async (
           filter?.querySelect.names?.join(',')) ||
         undefined,
     };
+
+    logger?.debug('[aws utils] [executeScan] Input', scanInput);
+
     const resultOutput = await client.scan(scanInput).promise();
 
     items = items.concat(resultOutput.Items || []);
@@ -292,12 +297,12 @@ export const updateAsync = async (
       }
     }
 
-    logger?.debug(`[aws-utils]-[updateAsync]`, params);
+    logger?.debug(`[aws-utils] [updateAsync]`, params);
     const resultOutput = await client.update(params).promise();
 
     return resultOutput;
   } catch (error) {
-    console.error(`[aws-utils]-[updateAsync]`, error);
+    console.error(`[aws-utils] [updateAsync]`, error);
 
     return null;
   }
@@ -334,7 +339,7 @@ export const batchPutAsync = async (
 
     return result;
   } catch (error) {
-    console.error(`[batchPutAsync]`, error);
+    console.error(`[aws-utils] [batchPutAsync]`, error);
 
     return null;
   }
@@ -373,8 +378,8 @@ const buildFilterExpression = (
   if (!filter) return {};
   const { includeFilter, containsFilter, containsAnyFilter, equalFilter } =
     filter;
-  const expAttrNames = {};
-  const expAttrValues = {};
+  const expAttrNames: ExpressionAttributeNameMap = {};
+  const expAttrValues: ExpressionAttributeValueMap = {};
   let filterExpression = '';
 
   const useIncludeFilter =
@@ -427,11 +432,16 @@ const buildFilterExpression = (
     );
   }
 
-  return {
-    filter: filterExpression || undefined,
-    attributeNames: (filterExpression && expAttrNames) || undefined,
-    attributeValues: (filterExpression && expAttrValues) || undefined,
+  const fiterResult =
+    filterExpression && filterExpression !== '' ? filterExpression : undefined;
+
+  const result = {
+    filter: fiterResult,
+    attributeNames: (fiterResult && expAttrNames) || undefined,
+    attributeValues: (fiterResult && expAttrValues) || undefined,
   };
+
+  return result;
 };
 
 const buildIncludeFilter = (
