@@ -1,6 +1,6 @@
 import { DynamoDB } from 'aws-sdk';
 import { buildQuery, executeQuery, executeScan } from './utilities';
-import { DynamoKey, QueryOutput, RepoQueryFilter } from './models';
+import { DynamoKey, QueryOutput, RepoQueryFilter, ScanFilter } from './models';
 import { batchPutAsync, updateAsync } from './utilities';
 import type { ILogger } from '../shared/models';
 import { Guard, isString } from '../shared/utilities';
@@ -106,8 +106,8 @@ export default function dynamoRepository<T>(
       .promise();
   };
 
-  const getAllItems = async (): Promise<T[]> => {
-    const res = await executeScan(tableName);
+  const getAllItems = async (filter?: ScanFilter): Promise<T[]> => {
+    const res = await executeScan(tableName, filter);
 
     return (res.items || []) as unknown as T[];
   };
