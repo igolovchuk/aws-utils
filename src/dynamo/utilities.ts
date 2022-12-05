@@ -23,10 +23,9 @@ import { DynamoDB } from 'aws-sdk';
 import { chunkArray } from '../shared/utilities';
 import { DynamoDBRecord, DynamoDBStreamEvent } from 'aws-lambda';
 import { ILogger } from '../shared/models';
-import type {
-  ExpressionAttributeNameMap,
-  ExpressionAttributeValueMap,
-} from 'aws-sdk/clients/dynamodb';
+
+// Marshalling Input and Unmarshalling Response Data
+// https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html
 
 export const buildQuery = (
   {
@@ -50,13 +49,11 @@ export const buildQuery = (
 
   let indexMainPart = undefined;
   let expression = '#key = :keyValue';
-  let expAttrNames: ExpressionAttributeNameMap = {
+  let expAttrNames = {
     '#key': keyFilter?.hashKey || indexFilter?.indexKey || '',
   };
-  let expAttrValues: ExpressionAttributeValueMap = {
-    ':keyValue': DynamoDB.Converter.input(
-      keyFilter?.hashKeyValue || indexFilter?.indexValue,
-    ),
+  let expAttrValues = {
+    ':keyValue': keyFilter?.hashKeyValue || indexFilter?.indexValue,
   };
 
   if (keyFilter?.rangeKeyFilter) {
@@ -378,8 +375,8 @@ const buildFilterExpression = (
   if (!filter) return {};
   const { includeFilter, containsFilter, containsAnyFilter, equalFilter } =
     filter;
-  const expAttrNames: ExpressionAttributeNameMap = {};
-  const expAttrValues: ExpressionAttributeValueMap = {};
+  const expAttrNames = {};
+  const expAttrValues = {};
   let filterExpression = '';
 
   const useIncludeFilter =
@@ -446,8 +443,8 @@ const buildFilterExpression = (
 
 const buildIncludeFilter = (
   includeFilter: IncludeFilter,
-  expressionAttributeNames: ExpressionAttributeNameMap,
-  expressionAttributeValues: ExpressionAttributeValueMap,
+  expressionAttributeNames: Record<string, string>,
+  expressionAttributeValues: Record<string, any>,
 ): string => {
   let filter = '';
 
@@ -460,8 +457,7 @@ const buildIncludeFilter = (
       filter += ' OR ';
     }
 
-    expressionAttributeValues[`:includeFilterValue${i}`] =
-      DynamoDB.Converter.input(filterValues[i]);
+    expressionAttributeValues[`:includeFilterValue${i}`] = filterValues[i];
     filter += `#includeFilter_${attributeName} = :includeFilterValue${i}`;
   }
   filter += ')';
@@ -471,14 +467,13 @@ const buildIncludeFilter = (
 
 const buildContainsFilter = (
   containsFilter: ContainsFilter,
-  expressionAttributeNames: ExpressionAttributeNameMap,
-  expressionAttributeValues: ExpressionAttributeValueMap,
+  expressionAttributeNames: Record<string, string>,
+  expressionAttributeValues: Record<string, any>,
 ): string => {
   let filter = '';
 
   const { attributeNames, filterValue } = containsFilter;
-  expressionAttributeValues[`:containsFilterValue`] =
-    DynamoDB.Converter.input(filterValue);
+  expressionAttributeValues[`:containsFilterValue`] = filterValue;
 
   filter += '(';
   for (let i = 0; i < attributeNames.length; i++) {
@@ -497,8 +492,8 @@ const buildContainsFilter = (
 
 const buildContainsAnyFilter = (
   containsAnyFilter: ContainsAnyFilter,
-  expressionAttributeNames: ExpressionAttributeNameMap,
-  expressionAttributeValues: ExpressionAttributeValueMap,
+  expressionAttributeNames: Record<string, string>,
+  expressionAttributeValues: Record<string, any>,
 ): string => {
   let filter = '';
 
@@ -512,8 +507,7 @@ const buildContainsAnyFilter = (
       filter += ' OR ';
     }
 
-    expressionAttributeValues[`:containsAnyFilterValue_${i}`] =
-      DynamoDB.Converter.input(filterValues[i]);
+    expressionAttributeValues[`:containsAnyFilterValue_${i}`] = filterValues[i];
     filter += `contains(#containsAnyFilter, :containsAnyFilterValue_${i})`;
   }
 
@@ -524,8 +518,8 @@ const buildContainsAnyFilter = (
 
 const buildEqualFilter = (
   equalFilter: EqualFilter,
-  expressionAttributeNames: ExpressionAttributeNameMap,
-  expressionAttributeValues: ExpressionAttributeValueMap,
+  expressionAttributeNames: Record<string, string>,
+  expressionAttributeValues: Record<string, any>,
 ): string => {
   let filter = '';
   const attributeNames = Object.keys(equalFilter);
@@ -538,7 +532,7 @@ const buildEqualFilter = (
 
     expressionAttributeNames[`#equalFilter_${i}`] = attributeNames[i];
     expressionAttributeValues[`:equalFilterValue_${i}`] =
-      DynamoDB.Converter.input(equalFilter[attributeNames[i]]);
+      equalFilter[attributeNames[i]];
     filter += `#equalFilter_${i} = :equalFilterValue_${i}`;
   }
   filter += ')';
@@ -549,8 +543,8 @@ const buildEqualFilter = (
 const buildExpression = (
   sortKey: string,
   operation: ExpressionOperation | undefined,
-  expressionAttributeNames: ExpressionAttributeNameMap,
-  expressionAttributeValues: ExpressionAttributeValueMap,
+  expressionAttributeNames: Record<string, string>,
+  expressionAttributeValues: Record<string, any>,
 ): string => {
   let expression = '';
 
