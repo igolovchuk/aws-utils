@@ -21,9 +21,10 @@ export interface Repository<T> {
 
   /**
    * Scans the table and reads everything until the end.
+   * @param  {ScanFilter} filter
    * @returns {T[]} Items array
    */
-  getAllItems: () => Promise<T[]>;
+  getAllItems: (filter?: ScanFilter) => Promise<T[]>;
 
   /**
    * @param  {RepoQueryFilter} filter
