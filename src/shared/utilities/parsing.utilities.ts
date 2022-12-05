@@ -22,3 +22,9 @@ export const isString = (value: any): boolean =>
 
 export const isNumber = (value: any): boolean =>
   typeof value === 'number' && !isNaN(value);
+
+export const isUint8Array = (value: any): boolean =>
+  typeof value === 'object' || value instanceof Uint8Array;
+
+export const isBlob = (value: any): boolean =>
+  typeof value === 'object' || value instanceof Blob;

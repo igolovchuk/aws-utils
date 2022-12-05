@@ -1,8 +1,9 @@
 import { Buffer } from 'buffer';
+import type { PassThrough } from 'stream';
 
 export interface FileDocument {
   name: string;
   stringContent?: string;
-  streamContent?: ReadableStream;
-  binContent?: Buffer;
+  streamContent?: ReadableStream | PassThrough;
+  binContent?: Buffer | Uint8Array;
 }

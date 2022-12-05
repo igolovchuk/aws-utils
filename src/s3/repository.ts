@@ -1,8 +1,11 @@
 import { S3 } from 'aws-sdk';
-import { FileDocument } from './models';
-import { Buffer } from 'buffer';
+import { FileDocument, S3UploadResult } from './models';
+import type { ILogger } from '../shared/models';
+import { Guard, isString } from '../shared';
+import { uploadToS3, uploadToS3FromUrl } from './utilities';
 
 const urlTTL = 3600; // 60 mins
+const maxUploadRetries = 3;
 
 export interface BucketRepository {
   getItem: (key: string) => Promise<FileDocument>;
@@ -12,9 +15,26 @@ export interface BucketRepository {
   removeObject: (path: string) => Promise<void>;
   removeObjects: (folderPath: string) => Promise<void>;
   putItem: (item: FileDocument) => Promise<void>;
+  /**
+   * @param  {string} path s3Key to the file
+   * @param  {string} downloadUrl? url for file downloading, requied if content is empty
+   * @param  {Buffer} content? buffer content, requied if downloadUrl is empty
+   * @param  {number} chunkSizeInMb? size of the one chunk for large files optimized upload
+   * @param  {number} maxRetries? max retries for partial upload, default - 3
+   */
+  uploadItem: (
+    path: string,
+    downloadUrl?: string,
+    content?: Buffer,
+    chunkSizeInMb?: number,
+    maxRetries?: number,
+  ) => Promise<S3UploadResult>;
 }
 
-export default function bucketRepository(bucketName: string): BucketRepository {
+export default function bucketRepository(
+  bucketName: string,
+  logger?: ILogger,
+): BucketRepository {
   const getItem = async (key: string): Promise<FileDocument> => {
     if (!key) {
       throw new Error('Invalid key');
@@ -29,7 +49,8 @@ export default function bucketRepository(bucketName: string): BucketRepository {
     return {
       name: key,
       stringContent: content,
-      binContent: file.Body as Buffer,
+      binContent:
+        (Buffer.isBuffer(file.Body) && (file.Body as Buffer)) || undefined,
     };
   };
 
@@ -92,21 +113,13 @@ export default function bucketRepository(bucketName: string): BucketRepository {
   };
 
   const putItem = async (item: FileDocument): Promise<void> => {
-    if (!item || (!item.streamContent && !item.stringContent)) {
+    if (!item?.stringContent && !item?.streamContent && !item?.binContent) {
       throw new Error('Invalid item');
     }
 
     const s3 = new S3();
 
-    if (item.streamContent) {
-      await s3
-        .upload({
-          Bucket: bucketName,
-          Key: item.name,
-          Body: item.streamContent,
-        })
-        .promise();
-    } else if (item.stringContent) {
+    if (isString(item.stringContent)) {
       await s3
         .putObject({
           Bucket: bucketName,
@@ -114,7 +127,49 @@ export default function bucketRepository(bucketName: string): BucketRepository {
           Body: item.stringContent,
         })
         .promise();
+    } else {
+      await s3
+        .upload({
+          Bucket: bucketName,
+          Key: item.name,
+          Body: item.streamContent || item.binContent,
+        })
+        .promise();
     }
+  };
+
+  const uploadItem = async (
+    path: string,
+    downloadUrl?: string,
+    content?: Buffer,
+    chunkSizeInMb?: number,
+    maxRetries = maxUploadRetries,
+  ): Promise<S3UploadResult> => {
+    Guard.throwIfEmpty(path);
+    Guard.throwIf(
+      (!downloadUrl && !content) || (!!downloadUrl && !!content),
+      'Please ptovide url or content, not both',
+    );
+
+    if (downloadUrl) {
+      return uploadToS3FromUrl(
+        path,
+        downloadUrl!,
+        bucketName,
+        chunkSizeInMb,
+        logger,
+        maxRetries,
+      );
+    }
+
+    return uploadToS3(
+      path,
+      content!,
+      bucketName,
+      chunkSizeInMb,
+      logger,
+      maxRetries,
+    );
   };
 
   return {
@@ -125,5 +180,6 @@ export default function bucketRepository(bucketName: string): BucketRepository {
     removeObject,
     removeObjects,
     putItem,
+    uploadItem,
   };
 }
