@@ -11,9 +11,12 @@ import {
   DynamoKey,
   EqualFilter,
   ExpressionOperation,
+  FilterExpression,
+  FilterExpressionOutput,
   IncludeFilter,
   QueryIndexFilter,
   QueryOutput,
+  ScanFilter,
   ScanOutput,
 } from './models';
 import { DynamoDB } from 'aws-sdk';
@@ -26,11 +29,8 @@ export const buildQuery = (
     tableName,
     keyFilter,
     indexFilter,
-    includeFilter,
-    containsFilter,
-    containsAnyFilter,
-    equalFilter,
-    querySelectType,
+    expressionFilter,
+    querySelect,
     limit,
     startKey,
   }: QueryIndexFilter,
@@ -46,23 +46,17 @@ export const buildQuery = (
 
   let indexMainPart = undefined;
   let expression = '#key = :keyValue';
-  let filter = '';
-  const expAttrNames = {
+  let expAttrNames = {
     '#key': keyFilter?.hashKey || indexFilter?.indexKey || '',
   };
-  const expAttrValues = {
+  let expAttrValues = {
     ':keyValue': keyFilter?.hashKeyValue || indexFilter?.indexValue,
   };
 
   if (keyFilter?.rangeKeyFilter) {
     const { key, operation } = keyFilter.rangeKeyFilter;
 
-    expression += buildExpressionFilter(
-      key,
-      operation,
-      expAttrNames,
-      expAttrValues,
-    );
+    expression += buildExpression(key, operation, expAttrNames, expAttrValues);
   } else if (indexFilter) {
     indexMainPart = indexFilter.indexKey;
 
@@ -70,7 +64,7 @@ export const buildQuery = (
       const { key, operation } = indexFilter.rangeKeyFilter;
       indexMainPart += `-${key}`;
 
-      expression += buildExpressionFilter(
+      expression += buildExpression(
         key,
         operation,
         expAttrNames,
@@ -83,42 +77,11 @@ export const buildQuery = (
     }
   }
 
-  const useIncludeFilter =
-    includeFilter &&
-    includeFilter.attributeName &&
-    includeFilter.filterValues?.length;
+  const filterExpression = buildFilterExpression(expressionFilter);
 
-  if (useIncludeFilter) {
-    filter += buildIncludeFilter(includeFilter!, expAttrNames, expAttrValues);
-  }
-
-  const useContainsFilter =
-    containsFilter &&
-    containsFilter.filterValue &&
-    containsFilter.attributeNames?.length;
-
-  if (useContainsFilter) {
-    filter += filter ? ' AND ' : '';
-    filter += buildContainsFilter(containsFilter!, expAttrNames, expAttrValues);
-  }
-
-  const useContainsAnyFilter =
-    containsAnyFilter &&
-    containsAnyFilter.attributeName &&
-    containsAnyFilter.filterValues?.length;
-
-  if (useContainsAnyFilter) {
-    filter += filter ? ' AND ' : '';
-    filter += buildContainsAnyFilter(
-      containsAnyFilter!,
-      expAttrNames,
-      expAttrValues,
-    );
-  }
-
-  if (equalFilter) {
-    filter += filter ? ' AND ' : '';
-    filter += buildEqualFilter(equalFilter!, expAttrNames, expAttrValues);
+  if (filterExpression.filter) {
+    expAttrNames = { ...expAttrNames, ...filterExpression.attributeNames };
+    expAttrValues = { ...expAttrValues, ...filterExpression.attributeValues };
   }
 
   const sortOrder =
@@ -132,8 +95,12 @@ export const buildQuery = (
     KeyConditionExpression: expression,
     ExpressionAttributeNames: expAttrNames,
     ExpressionAttributeValues: expAttrValues,
-    FilterExpression: filter || undefined,
-    Select: querySelectType || QuerySelectType.all,
+    FilterExpression: filterExpression.filter,
+    Select: querySelect?.type || QuerySelectType.all,
+    ProjectionExpression:
+      (querySelect?.type === QuerySelectType.specific &&
+        querySelect.names?.join(',')) ||
+      undefined,
     Limit: limit,
     ExclusiveStartKey: startKey,
     ScanIndexForward: sortOrder == SortOrder.DESC ? false : true,
@@ -220,15 +187,27 @@ export const executeQuery = async <T>(
   };
 };
 
-export const executeScan = async (tableId: string): Promise<ScanOutput> => {
+export const executeScan = async (
+  tableId: string,
+  filter?: ScanFilter,
+): Promise<ScanOutput> => {
   let items: DynamoDB.ItemList = [];
   let itemsCount = 0;
   const errors: Array<AWS.AWSError> = [];
+  const filterExpression = buildFilterExpression(filter?.expressionFilter);
 
   try {
     const client = new DynamoDB.DocumentClient();
     const scanInput: DynamoDB.ScanInput = {
       TableName: tableId,
+      FilterExpression: filterExpression.filter,
+      ExpressionAttributeNames: filterExpression.attributeNames,
+      ExpressionAttributeValues: filterExpression.attributeValues,
+      Select: filter?.querySelect?.type || QuerySelectType.all,
+      ProjectionExpression:
+        (filter?.querySelect?.type === QuerySelectType.specific &&
+          filter?.querySelect.names?.join(',')) ||
+        undefined,
     };
     const resultOutput = await client.scan(scanInput).promise();
 
@@ -382,6 +361,73 @@ export const toItem = <T>(
   return (item && DynamoDB.Converter.unmarshall(item)) as T;
 };
 
+const buildFilterExpression = (
+  filter?: FilterExpression,
+): FilterExpressionOutput => {
+  if (!filter) return {};
+  const { includeFilter, containsFilter, containsAnyFilter, equalFilter } =
+    filter;
+  const expAttrNames = {};
+  const expAttrValues = {};
+  let filterExpression = '';
+
+  const useIncludeFilter =
+    includeFilter &&
+    includeFilter.attributeName &&
+    includeFilter.filterValues?.length;
+
+  if (useIncludeFilter) {
+    filterExpression += buildIncludeFilter(
+      includeFilter!,
+      expAttrNames,
+      expAttrValues,
+    );
+  }
+
+  const useContainsFilter =
+    containsFilter &&
+    containsFilter.filterValue &&
+    containsFilter.attributeNames?.length;
+
+  if (useContainsFilter) {
+    filterExpression += filterExpression ? ' AND ' : '';
+    filterExpression += buildContainsFilter(
+      containsFilter!,
+      expAttrNames,
+      expAttrValues,
+    );
+  }
+
+  const useContainsAnyFilter =
+    containsAnyFilter &&
+    containsAnyFilter.attributeName &&
+    containsAnyFilter.filterValues?.length;
+
+  if (useContainsAnyFilter) {
+    filterExpression += filterExpression ? ' AND ' : '';
+    filterExpression += buildContainsAnyFilter(
+      containsAnyFilter!,
+      expAttrNames,
+      expAttrValues,
+    );
+  }
+
+  if (equalFilter) {
+    filterExpression += filterExpression ? ' AND ' : '';
+    filterExpression += buildEqualFilter(
+      equalFilter!,
+      expAttrNames,
+      expAttrValues,
+    );
+  }
+
+  return {
+    filter: filterExpression || undefined,
+    attributeNames: (filterExpression && expAttrNames) || undefined,
+    attributeValues: (filterExpression && expAttrValues) || undefined,
+  };
+};
+
 const buildIncludeFilter = (
   includeFilter: IncludeFilter,
   expressionAttributeNames: Record<string, any>,
@@ -481,7 +527,7 @@ const buildEqualFilter = (
   return filter;
 };
 
-const buildExpressionFilter = (
+const buildExpression = (
   sortKey: string,
   operation: ExpressionOperation | undefined,
   expressionAttributeNames: Record<string, any>,

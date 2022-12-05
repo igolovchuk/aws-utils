@@ -64,15 +64,42 @@ export type RepoQueryFilter = Omit<QueryIndexFilter, 'tableName'>;
 
 export interface QueryIndexFilter {
   tableName: string;
-  querySelectType?: QuerySelectType;
+  querySelect?: QuerySelect;
   keyFilter?: KeyFilter;
   indexFilter?: IndexFilter;
+  expressionFilter?: FilterExpression;
+  limit?: number;
+  startKey?: Record<string, any>;
+}
+
+export interface ScanFilter {
+  querySelect?: QuerySelect;
+  expressionFilter?: FilterExpression;
+}
+
+export interface FilterExpression {
   includeFilter?: IncludeFilter;
   containsFilter?: ContainsFilter;
   containsAnyFilter?: ContainsAnyFilter;
   equalFilter?: EqualFilter;
-  limit?: number;
-  startKey?: Record<string, any>;
+}
+
+export interface FilterExpressionOutput {
+  filter?: string;
+  attributeNames?: Record<string, string>;
+  attributeValues?: Record<string, any>;
+}
+
+export interface QuerySelect {
+  /**
+   * Default is ALL_ATTRIBUTES, you can specify other type depending on the need.
+   */
+  type: QuerySelectType;
+  /**
+   * Used only for QuerySelectType.specific, sample of names:
+   * Description, RelatedItems[0], ProductReviews.FiveStar.
+   */
+  names?: string[];
 }
 
 export interface QueryOutput<T> {
