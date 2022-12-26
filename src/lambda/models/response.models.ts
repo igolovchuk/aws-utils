@@ -35,4 +35,12 @@ export class ApiError extends Error {
     this.code = code;
     this.validationErrors = validationErrors;
   }
+
+  static throwIf = (condition: boolean, message?: string, code = 500): void => {
+    if (condition)
+      throw new ApiError(
+        `[Api Error] ${message}` || '[Api Error] Data was not valid',
+        code,
+      );
+  };
 }
