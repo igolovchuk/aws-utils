@@ -26,3 +26,8 @@ export enum DynamoItemType {
   NEW = 'NEW',
   OLD = 'OLD',
 }
+
+export enum FilterOperation {
+  OR = 'OR',
+  AND = 'AND',
+}

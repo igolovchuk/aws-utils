@@ -6,7 +6,7 @@ import {
   SortOrder,
 } from './models/enum.models';
 import {
-  ContainsAnyFilter,
+  ContainsArrayFilter,
   ContainsFilter,
   DynamoKey,
   EqualFilter,
@@ -373,7 +373,7 @@ const buildFilterExpression = (
   filter?: FilterExpression,
 ): FilterExpressionOutput => {
   if (!filter) return {};
-  const { includeFilter, containsFilter, containsAnyFilter, equalFilter } =
+  const { includeFilter, containsFilter, containsArrayFilter, equalFilter } =
     filter;
   const expAttrNames = {};
   const expAttrValues = {};
@@ -406,15 +406,15 @@ const buildFilterExpression = (
     );
   }
 
-  const useContainsAnyFilter =
-    containsAnyFilter &&
-    containsAnyFilter.attributeName &&
-    containsAnyFilter.filterValues?.length;
+  const useContainsArrayFilter =
+    containsArrayFilter &&
+    containsArrayFilter.attributeName &&
+    containsArrayFilter.filterValues?.length;
 
-  if (useContainsAnyFilter) {
+  if (useContainsArrayFilter) {
     filterExpression += filterExpression ? ' AND ' : '';
-    filterExpression += buildContainsAnyFilter(
-      containsAnyFilter!,
+    filterExpression += buildContainsArrayFilter(
+      containsArrayFilter!,
       expAttrNames,
       expAttrValues,
     );
@@ -490,25 +490,26 @@ const buildContainsFilter = (
   return filter;
 };
 
-const buildContainsAnyFilter = (
-  containsAnyFilter: ContainsAnyFilter,
+const buildContainsArrayFilter = (
+  containsArrayFilter: ContainsArrayFilter,
   expressionAttributeNames: Record<string, string>,
   expressionAttributeValues: Record<string, any>,
 ): string => {
   let filter = '';
 
-  const { attributeName, filterValues } = containsAnyFilter;
-  expressionAttributeNames[`#containsAnyFilter`] = attributeName;
+  const { attributeName, filterValues, filterOperation } = containsArrayFilter;
+  expressionAttributeNames[`#containsArrayFilter`] = attributeName;
 
   filter += '(';
 
   for (let i = 0; i < filterValues.length; i++) {
     if (i > 0) {
-      filter += ' OR ';
+      filter += ` ${filterOperation || 'OR'} `;
     }
 
-    expressionAttributeValues[`:containsAnyFilterValue_${i}`] = filterValues[i];
-    filter += `contains(#containsAnyFilter, :containsAnyFilterValue_${i})`;
+    expressionAttributeValues[`:containsArrayFilterValue_${i}`] =
+      filterValues[i];
+    filter += `contains(#containsArrayFilter, :containsArrayFilterValue_${i})`;
   }
 
   filter += ')';

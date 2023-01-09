@@ -1,5 +1,6 @@
 import {
   ExpressionOperationType,
+  FilterOperation,
   IndexProjectionType,
   QuerySelectType,
   SortOrder,
@@ -31,9 +32,10 @@ export interface ContainsFilter {
   filterValue: any;
 }
 
-export interface ContainsAnyFilter {
+export interface ContainsArrayFilter {
   attributeName: string;
   filterValues: any[];
+  filterOperation?: FilterOperation;
 }
 
 export interface IndexFilter {
@@ -80,7 +82,7 @@ export interface ScanFilter {
 export interface FilterExpression {
   includeFilter?: IncludeFilter;
   containsFilter?: ContainsFilter;
-  containsAnyFilter?: ContainsAnyFilter;
+  containsArrayFilter?: ContainsArrayFilter;
   equalFilter?: EqualFilter;
 }
 
