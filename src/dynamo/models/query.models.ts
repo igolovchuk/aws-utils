@@ -80,9 +80,26 @@ export interface ScanFilter {
 }
 
 export interface FilterExpression {
+  /**
+   * Filters attribute by multiple values with OR operation
+   * Ex. get all items where status any of the values [ACTIVE, PENDING]
+   */
   includeFilter?: IncludeFilter;
+  /**
+   * Filters multiple attribute names by the same value
+   * Ex. get item where isDeleted and isAdmin = false;
+   */
   containsFilter?: ContainsFilter;
-  containsArrayFilter?: ContainsArrayFilter;
+  /**
+   * Filters array fields of the table by [AND, OR] comparison
+   * Supports multiple filters at a time, operations between multiple filters - 'AND'
+   * Ex. get all items where userTags contains ['nature' AND/OR 'forest'] AND autoTags contains ['trees']
+   */
+  containsArrayFilters?: ContainsArrayFilter[];
+  /**
+   * Filters attributes by the its values with AND operation
+   * Ex. get all items where status = ACTIVE and isDeleted = false
+   */
   equalFilter?: EqualFilter;
 }
 

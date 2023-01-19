@@ -373,7 +373,7 @@ const buildFilterExpression = (
   filter?: FilterExpression,
 ): FilterExpressionOutput => {
   if (!filter) return {};
-  const { includeFilter, containsFilter, containsArrayFilter, equalFilter } =
+  const { includeFilter, containsFilter, containsArrayFilters, equalFilter } =
     filter;
   const expAttrNames = {};
   const expAttrValues = {};
@@ -406,15 +406,12 @@ const buildFilterExpression = (
     );
   }
 
-  const useContainsArrayFilter =
-    containsArrayFilter &&
-    containsArrayFilter.attributeName &&
-    containsArrayFilter.filterValues?.length;
+  const useContainsArrayFilter = containsArrayFilters?.length;
 
   if (useContainsArrayFilter) {
     filterExpression += filterExpression ? ' AND ' : '';
     filterExpression += buildContainsArrayFilter(
-      containsArrayFilter!,
+      containsArrayFilters!,
       expAttrNames,
       expAttrValues,
     );
@@ -491,28 +488,38 @@ const buildContainsFilter = (
 };
 
 const buildContainsArrayFilter = (
-  containsArrayFilter: ContainsArrayFilter,
+  containsArrayFilters: ContainsArrayFilter[],
   expressionAttributeNames: Record<string, string>,
   expressionAttributeValues: Record<string, any>,
 ): string => {
   let filter = '';
 
-  const { attributeName, filterValues, filterOperation } = containsArrayFilter;
-  expressionAttributeNames[`#containsArrayFilter`] = attributeName;
-
-  filter += '(';
-
-  for (let i = 0; i < filterValues.length; i++) {
+  for (let i = 0; i < containsArrayFilters.length; i++) {
     if (i > 0) {
-      filter += ` ${filterOperation || 'OR'} `;
+      // for each next filter add 'AND' before
+      filter += ' AND ';
     }
 
-    expressionAttributeValues[`:containsArrayFilterValue_${i}`] =
-      filterValues[i];
-    filter += `contains(#containsArrayFilter, :containsArrayFilterValue_${i})`;
-  }
+    const { attributeName, filterValues, filterOperation } =
+      containsArrayFilters[i];
+    expressionAttributeNames[`#containsArrayFilter_${attributeName}`] =
+      attributeName;
 
-  filter += ')';
+    filter += '(';
+
+    for (let j = 0; j < filterValues.length; j++) {
+      if (j > 0) {
+        filter += ` ${filterOperation || 'OR'} `;
+      }
+
+      expressionAttributeValues[
+        `:containsArrayFilterValue_${attributeName}_${j}`
+      ] = filterValues[j];
+      filter += `contains(#containsArrayFilter_${attributeName}, :containsArrayFilterValue_${attributeName}_${j})`;
+    }
+
+    filter += ')';
+  }
 
   return filter;
 };
