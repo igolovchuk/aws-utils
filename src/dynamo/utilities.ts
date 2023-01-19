@@ -373,7 +373,7 @@ const buildFilterExpression = (
   filter?: FilterExpression,
 ): FilterExpressionOutput => {
   if (!filter) return {};
-  const { includeFilter, containsFilter, containsArrayFilters, equalFilter } =
+  const { includeFilter, containsFilter, containsArrayFilter, equalFilter } =
     filter;
   const expAttrNames = {};
   const expAttrValues = {};
@@ -406,12 +406,12 @@ const buildFilterExpression = (
     );
   }
 
-  const useContainsArrayFilter = containsArrayFilters?.length;
+  const useContainsArrayFilter = containsArrayFilter?.items?.length;
 
   if (useContainsArrayFilter) {
     filterExpression += filterExpression ? ' AND ' : '';
     filterExpression += buildContainsArrayFilter(
-      containsArrayFilters!,
+      containsArrayFilter!,
       expAttrNames,
       expAttrValues,
     );
@@ -488,20 +488,20 @@ const buildContainsFilter = (
 };
 
 const buildContainsArrayFilter = (
-  containsArrayFilters: ContainsArrayFilter[],
+  containsArrayFilter: ContainsArrayFilter,
   expressionAttributeNames: Record<string, string>,
   expressionAttributeValues: Record<string, any>,
 ): string => {
   let filter = '';
 
-  for (let i = 0; i < containsArrayFilters.length; i++) {
+  for (let i = 0; i < containsArrayFilter.items.length; i++) {
     if (i > 0) {
-      // for each next filter add 'AND' before
-      filter += ' AND ';
+      // for each next filter add 'filterOperation' before
+      filter += ` ${containsArrayFilter.filterOperation || 'OR'} `;
     }
 
     const { attributeName, filterValues, filterOperation } =
-      containsArrayFilters[i];
+      containsArrayFilter.items[i];
     expressionAttributeNames[`#containsArrayFilter_${attributeName}`] =
       attributeName;
 

@@ -33,6 +33,11 @@ export interface ContainsFilter {
 }
 
 export interface ContainsArrayFilter {
+  items: ContainsArrayFilterItem[];
+  filterOperation?: FilterOperation;
+}
+
+export interface ContainsArrayFilterItem {
   attributeName: string;
   filterValues: any[];
   filterOperation?: FilterOperation;
@@ -92,10 +97,10 @@ export interface FilterExpression {
   containsFilter?: ContainsFilter;
   /**
    * Filters array fields of the table by [AND, OR] comparison
-   * Supports multiple filters at a time, operations between multiple filters - 'AND'
+   * Supports multiple filters at a time, operations between multiple filters - ['AND', 'OR]
    * Ex. get all items where userTags contains ['nature' AND/OR 'forest'] AND autoTags contains ['trees']
    */
-  containsArrayFilters?: ContainsArrayFilter[];
+  containsArrayFilter?: ContainsArrayFilter;
   /**
    * Filters attributes by the its values with AND operation
    * Ex. get all items where status = ACTIVE and isDeleted = false
