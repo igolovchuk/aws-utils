@@ -238,6 +238,7 @@ export const handler = createDynamoAthenaHistorySyncHandler(config);
 ```typescript
 
 ```
+
 ### s3 utils
 >  Create Bucket repository
 
@@ -307,6 +308,7 @@ import { contentBucketRepository } from '../storage';
 await contentBucketRepository.removeObject(key);
 await contentBucketRepository.removeObjects(bucketPath);
 ```
+
 ### sns utils
 > Create SNS publisher and publish message
 
