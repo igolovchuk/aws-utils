@@ -1,6 +1,6 @@
 {
     "name": "@golovchuk/aws-utils",
-    "version": "1.0.37",
+    "version": "1.0.38",
     "main": "index",
     "license": "MIT",
     "types": "index.d.ts",
@@ -28,8 +28,9 @@
         "aws-sdk": "^2.1119.0"
     },
     "scripts": {
-        "build": "tsc -p . --skiplibcheck && cp -rf ./package.json lib",
+        "build": "tsc -p . --skiplibcheck && yarn copy-files",
         "deploy": "yarn build && cd lib && yarn publish && cd -",
+        "copy-files": "cp -rf ./package.json lib && cp ./README.md lib && cp ./LICENSE.txt lib",
         "lint": "eslint . --ext .ts,.tsx"
     },
     "publishConfig": {
